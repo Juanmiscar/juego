@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Juanmi</title>
+    <script src="phaser.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+<script type="text/javascript">
+
+
+    var ctx = this;
+
+
+    class Vector {
+
+      constructor(_x, _y){
+        this.x = _x;
+        this.y = _y;
+
+      }
+    }
+
+    class Enemy {
+
+      constructor(startPosition, sprite, physiscController) {
+
+
+        this.live = 10;
+        this.position = {"x":startPosition.x, "y":startPosition.y};
+
+        this.sprite = sprite;
+
+        physiscController.add.collider(sprite, platforms);
+        this.sprite.setScale(2,2);
+
+        this.currentDir = 1;
+
+      }
+
+
+      update = function () {
+
+        if(score==500){
+        GameText = this.add.text(250, 250, 'Has recolectado todas las pociones', {
+                    font: 'bold 48px Arial',
+                    fill: '#ff0000',});
+        }
+
+        this.sprite.setVelocityX(this.currentDir * 100);
+
+
+        if(player.x > this.sprite.x){
+          this.currentDir = 1;
+          this.sprite.setScale(2, 2);
+
+        }else {
+          this.currentDir = -1;
+          this.sprite.setScale(-2, 2);
+        }
+
+        if(this.sprite.y > 800){
+            this.resetPosition();
+
+        }
+
+
+
+      }
+
+      resetPosition = function (){
+
+        enemy.sprite.x = enemy.position.x;
+            enemy.sprite.y = enemy.position.y;
+      }
+
+
+    }
+
+
+
+
+
+
+      // This is the config for platforms
+
+    var config = {
+      type: Phaser.AUTO,
+      width: 1920,
+      height: 974,
+      physics:{
+        default:'arcade',
+        arcade:{
+          gravity:{y:300},
+          debug:false
+        }
+      },
+      scene: {
+        preload: preload,
+        create: create,
+        update: update  }};
+
+
+        var enemies = new Array();
+        var object;
+        var player;
+        var stars;
+        var platforms;
+        var cursors;
+        var score = 0;
+        var scoreText;
+        
+
+
+    var game = new Phaser.Game(config);
+
+    function preload ()
+  {
+      //  This is for add background
+        this.load.image('sky','assets/2182.jpg');
+      // THis is for put image in the platforms
+        this.load.image('ground','assets/suelo.png');
+        this.load.image('star', 'assets/star.png');
+        this.load.image('fireball', 'assets/kisspndireball.png');
+        this.load.spritesheet('dude', 'assets/wizard_5.png', { frameWidth: 47, frameHeight: 62.5 });
+        this.load.spritesheet('enemy', 'assets/fallen_warrior.png', { frameWidth: 47, frameHeight: 62.5 });
+
+
+
+  }
+
+
+      // this function is for create elements
+    function create ()
+    {
+
+
+
+      // THis tag is for add image
+        this.add.image(800,400,'sky');
+      // This is for create new platforms
+        platforms = this.physics.add.staticGroup();
+        platforms.create(1000,1000,'ground').setScale(5).refreshBody();
+
+
+
+        platforms.create(600,420,'ground');
+        platforms.create(50,250,'ground');
+        platforms.create(950,600,'ground');
+        platforms.create(1400,750,'ground');
+        platforms.create(500,750,'ground');
+        platforms.create(1500,400,'ground');
+        platforms.create(1000,250,'ground');
+        platforms.create(2000,220,'ground');
+
+
+
+        enemy = new Enemy({"x":759, "y":332}, this.physics.add.sprite(759, 332, 'enemy'), this.physics);
+
+
+        player = this.physics.add.sprite(400, 650, 'dude').setScale(1.5);
+            player.setBounce(0.2);
+            player.setCollideWorldBounds(true);
+            this.anims.create({
+                key: 'left',
+                frames: this.anims.generateFrameNumbers('dude', { start: 10, end: 12 }),
+                frameRate: 20,
+                repeat: -1
+            });
+            this.anims.create({
+                key: 'turn',
+                frames: [ { key: 'dude', frame: 4 } ],
+                frameRate: 30
+            });
+            this.anims.create({
+                key: 'right',
+                frames: this.anims.generateFrameNumbers('dude', { start: 3, end: 5 }),
+                frameRate: 20,
+                repeat: -1
+            });
+            this.anims.create({
+                key: 'right_enemy',
+                frames: this.anims.generateFrameNumbers('enemy', { start: 3, end: 5 }),
+                frameRate: 20,
+                repeat: -1
+            });
+            stars = this.physics.add.group({
+                key: 'star',
+                repeat: 40,
+                setXY: { x: 12, y: 0, stepX: 50 },
+
+
+            });
+
+        cursors = this.input.keyboard.createCursorKeys();
+        this.physics.add.collider(player, platforms);
+
+
+
+        scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
+        this.physics.add.collider(player, platforms);
+        this.physics.add.collider(stars, platforms);
+        this.physics.add.overlap(player, stars, collectStar, null, this);
+
+
+        this.physics.add.overlap(player, enemy.sprite, ()=>{
+
+          this.registry.destroy(); // destroy registry
+          this.events.off();﻿ // disable all active events
+          this.scene.restart();﻿﻿﻿﻿ // restart current scene
+
+        }, null, this);
+
+    }
+
+
+    var fireCoolDownTime = 500;//milisegundos
+    var canShoot = true;
+
+    var timeToDestroyProjectile = 5000;
+
+    var projectiles = new Array();
+
+    function update ()
+    {
+
+      enemy.update();
+  enemy.sprite.anims.play('right_enemy',true);
+      if (player.x>=enemy.x) {
+        enemy.flipX = true;
+      }else {enemy.flipX = false;}
+      if (cursors.left.isDown)
+      {
+          player.setVelocityX(-160);
+
+          player.anims.play('left', true);
+      }
+      else if (cursors.right.isDown)
+      {
+          player.setVelocityX(160);
+
+          player.anims.play('right', true);
+      }
+      else
+      {
+          player.setVelocityX(0);
+
+          player.anims.play('turn');
+      }
+
+      if (cursors.up.isDown && player.body.touching.down)
+      {
+          player.setVelocityY(-330);
+      }
+
+      if(canShoot){
+
+        if (game.input.activePointer.isDown)
+        {
+          canShoot = false;
+          fireCoolDownCount = 0.0;
+          object = this.physics.add.sprite(player.x, player.y, 'fireball');
+
+          var shootDirection = {
+            "x":game.input.mousePointer.x - player.x,
+            "y":game.input.mousePointer.y- player.y
+          };
+
+          var shootlength = Math.sqrt(shootDirection.x*shootDirection.x + shootDirection.y*shootDirection.y);
+
+          shootDirection.x /= shootlength;
+          shootDirection.y /= shootlength;
+
+          var speed = 600;
+
+          object.setVelocityX(shootDirection.x*speed);
+          object.setVelocityY(shootDirection.y*speed);
+
+          object.setScale(0.03, 0.03);
+
+          this.physics.add.collider(object, platforms);
+
+          this.physics.add.overlap(object, enemy.sprite, ()=>{
+
+
+            enemy.resetPosition();
+
+            projectiles[0].destroy();
+            projectiles.splice(0, 1);
+
+
+
+
+          }, null, this);
+
+
+
+          projectiles.push(object);
+
+          setTimeout(()=>{
+
+            canShoot = true;
+
+          }, fireCoolDownTime);
+
+          setTimeout(()=>{
+
+            if(projectiles[0] != null){
+              projectiles[0].destroy();
+              projectiles.splice(0, 1);
+
+            }
+
+          }, timeToDestroyProjectile);
+
+
+        }
+
+      }
+
+
+  }
+
+
+
+
+
+  function collectStar (player, star)
+  {
+      star.disableBody(true, true);
+
+      //  Add and update the score
+      score += 1;
+      scoreText.setText('Score: ' + score);
+
+      if (stars.countActive(true) === 0)
+      {
+
+          stars.children.iterate(function (child) {
+
+              child.enableBody(true, child.x, 0, true, true);
+
+          });
+
+          var x = (player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
+
+      }
+  }
+
+
+</script>
+
+</body>
+</html>
